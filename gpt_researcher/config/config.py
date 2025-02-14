@@ -33,7 +33,7 @@ class Config:
             setattr(self, key.lower(), value)
 
         # Handle RETRIEVER with default value
-        retriever_env = os.environ.get("RETRIEVER", "tavily")
+        retriever_env = os.environ.get("RETRIEVER", config.get("RETRIEVER", "tavily"))
         try:
             self.retrievers = self.parse_retrievers(retriever_env)
         except ValueError as e:
@@ -72,6 +72,8 @@ class Config:
                     self.embedding_model = "text-embedding-3-large"
                 case "huggingface":
                     self.embedding_model = "sentence-transformers/all-MiniLM-L6-v2"
+                case "google_genai":
+                    self.embedding_model = "text-embedding-004"
                 case _:
                     raise Exception("Embedding provider not found.")
 

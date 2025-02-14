@@ -42,7 +42,10 @@ async def write_report_introduction(
             messages=[
                 {"role": "system", "content": f"{agent_role_prompt}"},
                 {"role": "user", "content": generate_report_introduction(
-                    query, context)},
+                    question=query,
+                    research_summary=context,
+                    language=config.language
+                )},
             ],
             temperature=0.25,
             llm_provider=config.smart_llm_provider,
@@ -85,7 +88,9 @@ async def write_conclusion(
             model=config.smart_llm_model,
             messages=[
                 {"role": "system", "content": f"{agent_role_prompt}"},
-                {"role": "user", "content": generate_report_conclusion(query, context)},
+                {"role": "user", "content": generate_report_conclusion(query=query,
+                                                                       report_content=context,
+                                                                       language=config.language)},
             ],
             temperature=0.25,
             llm_provider=config.smart_llm_provider,
@@ -227,9 +232,9 @@ async def generate_report(
     report = ""
 
     if report_type == "subtopic_report":
-        content = f"{generate_prompt(query, existing_headers, relevant_written_contents, main_topic, context, report_format=cfg.report_format, tone=tone, total_words=cfg.total_words)}"
+        content = f"{generate_prompt(query, existing_headers, relevant_written_contents, main_topic, context, report_format=cfg.report_format, tone=tone, total_words=cfg.total_words, language=cfg.language)}"
     else:
-        content = f"{generate_prompt(query, context, report_source, report_format=cfg.report_format, tone=tone, total_words=cfg.total_words)}"
+        content = f"{generate_prompt(query, context, report_source, report_format=cfg.report_format, tone=tone, total_words=cfg.total_words, language=cfg.language)}"
     try:
         report = await create_chat_completion(
             model=cfg.smart_llm_model,
@@ -245,7 +250,22 @@ async def generate_report(
             llm_kwargs=cfg.llm_kwargs,
             cost_callback=cost_callback,
         )
-    except Exception as e:
-        print(f"Error in generate_report: {e}")
+    except:
+        try:
+            report = await create_chat_completion(
+                model=cfg.smart_llm_model,
+                messages=[
+                    {"role": "user", "content": f"{agent_role_prompt}\n\n{content}"},
+                ],
+                temperature=0.35,
+                llm_provider=cfg.smart_llm_provider,
+                stream=True,
+                websocket=websocket,
+                max_tokens=cfg.smart_token_limit,
+                llm_kwargs=cfg.llm_kwargs,
+                cost_callback=cost_callback,
+            )
+        except Exception as e:
+            print(f"Error in generate_report: {e}")
 
     return report
